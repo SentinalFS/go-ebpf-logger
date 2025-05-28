@@ -1,0 +1,72 @@
+name: CI and Release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-version:
+    name: Check VERSION.txt updated in PR
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Ensure VERSION.txt is updated
+        run: |
+          git fetch origin main
+          CHANGED=$(git diff --name-only origin/main...HEAD)
+          if ! echo "$CHANGED" | grep -qx VERSION.txt; then
+            echo "Error: VERSION.txt must be updated in this pull request."
+            exit 1
+          fi
+
+  build:
+    name: Build Go project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.20
+
+      - name: Download dependencies
+        run: go mod tidy
+
+      - name: Build binary
+        run: go build -o listener
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(cat VERSION.txt)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          body: |
+            Automated release triggered by push to `main`.
+
+            **Version**: v${{ steps.version.outputs.version }}
+
+            _Changes in this release are based on PR history._
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
