@@ -12,7 +12,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
-	"github.com/cilium/ebpf/perf"
+	"github.com/cilium/ebpf/ringbuf"
 )
 
 func main() {
@@ -44,9 +44,9 @@ func main() {
 		log.Fatalf("Map 'events' not found")
 	}
 
-	rd, err := perf.NewReader(events, 4096)
+	rd, err := ringbuf.NewReader(events)
 	if err != nil {
-		log.Fatalf("Failed to create perf reader: %v", err)
+		log.Fatalf("Failed to create ring buffer reader: %v", err)
 	}
 	defer rd.Close()
 
@@ -62,7 +62,7 @@ loop:
 		default:
 			record, err := rd.Read()
 			if err != nil {
-				log.Printf("Error reading from perf buffer: %v", err)
+				log.Printf("Failed to read from ring buffer: %v", err)
 				continue
 			}
 			var e event.Data
