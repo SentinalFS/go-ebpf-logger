@@ -39,6 +39,22 @@ func main() {
 	}
 	defer kp.Close()
 
+	monitoredInodeMap := coll.Maps["monitored_inodes"]
+    if monitoredInodeMap == nil {
+        log.Printf("Map 'monitored_inode' not found in collection. Skipping pinning.")
+    } else {
+        pinPath := "/sys/fs/bpf/monitored_inode"
+        if err := os.Remove(pinPath); err != nil && !os.IsNotExist(err) {
+            log.Printf("Warning: failed to remove existing pin at %s: %v", pinPath, err)
+        }
+
+        if err := monitoredInodeMap.Pin(pinPath); err != nil {
+            log.Fatalf("Failed to pin map 'monitored_inode' to %s: %v", pinPath, err)
+        }
+        log.Printf("Map 'monitored_inode' pinned to %s", pinPath)
+    }
+
+
 	events := coll.Maps["events"]
 	if events == nil {
 		log.Fatalf("Map 'events' not found")
