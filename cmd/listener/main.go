@@ -2,6 +2,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"log"
@@ -56,27 +58,21 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
-	go func() {
-		for {
-			select {
-			case <-done: 
-				return 
-			default:
-				record, err := rd.Read()
-				if err != nil {
-					if ringbuf.Is  (err) {
-						log.Println("Ring buffer reader closed, exiting event processing goroutine.")
-						return 
-					}
-					log.Printf("Failed to read from ring buffer: %v", err)
-					continue 
-				}
-				event.Print(record.RawSample)
+loop:
+	for {
+		select {
+		case <-sigCh:
+			break loop
+		default:
+			record, err := rd.Read()
+			if err != nil {
+				log.Printf("Failed to read from ring buffer: %v", err)
+				continueAdd commentMore actions
+			}
+			var e event.Data
+			if err := binary.Read(bytes.NewReader(record.RawSample), binary.LittleEndian, &e); err == nil {
+				event.Print(e)
 			}
 		}
-	}()
-
-	<-sigCh
-	close(done)
-	fmt.Println("\nExiting...")
+}
 }
