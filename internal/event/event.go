@@ -4,18 +4,11 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"models/models"
 )
 
-type Data struct {
-	Pid       uint32
-	Uid       uint32
-	Filename  [128]byte
-	Comm      [16]byte
-	Timestamp uint64
-	Otype     [16]byte
-}
 
-func Print(e Data) {
+func Print(e models.Data) {
 	ts := time.Unix(0, int64(e.Timestamp))
 	fmt.Printf("[%s] PID=%d, UID=%d, Operation=%s, File=%s, Process=%s\n",
 		ts.Format("15:04:05"),

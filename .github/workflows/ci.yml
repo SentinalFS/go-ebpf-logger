@@ -44,29 +44,37 @@ jobs:
         run: go build -o listener
 
   release:
-    name: Create GitHub Release
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Read version
-        id: version
+    - name: Check version
         run: |
           VERSION=$(cat VERSION.txt)
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> $GITHUB_ENV
+          echo "Version: $VERSION"
+
+      - name: Create Tag
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'pull_request' &&
+          github.event.action == 'closed' &&
+          github.event.pull_request.merged == true &&
+          github.event.pull_request.base.ref == 'main')
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git tag "v${{ env.version }}"
+          git push origin "v${{ env.version }}"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'pull_request' &&
+          github.event.action == 'closed' &&
+          github.event.pull_request.merged == true &&
+          github.event.pull_request.base.ref == 'main')
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: Release v${{ steps.version.outputs.version }}
-          body: |
-            Automated release triggered by push to `main`.
-
-            **Version**: v${{ steps.version.outputs.version }}
-
-            _Changes in this release are based on PR history._
+          tag_name: v${{ env.version }}
+          name: Release v${{ env.version }}
+          files: build/monitor.bpf.o 
+          # generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
