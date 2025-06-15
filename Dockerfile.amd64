@@ -1,0 +1,13 @@
+FROM debian:stable-slim
+
+ARG TARGETARCH
+
+WORKDIR /app
+
+COPY dist/go-ebpf-logger_linux_${TARGETARCH}_v1/go-ebpf-logger /app/go-ebpf-logger
+
+COPY monitor.bpf.o /app/monitor.bpf.o
+
+RUN chmod +x /app/go-ebpf-logger
+
+ENTRYPOINT ["/app/go-ebpf-logger"]

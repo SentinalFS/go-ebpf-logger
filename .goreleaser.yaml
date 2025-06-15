@@ -1,0 +1,20 @@
+project_name: go-ebpf-logger
+
+builds:
+  - main: ./main.go
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - format: tar.gz
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+
+release:
+  github:
+    owner: siddh34
+    name: go-ebpf-logger
