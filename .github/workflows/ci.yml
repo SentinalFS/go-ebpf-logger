@@ -61,3 +61,61 @@ jobs:
           goreleaser release --clean --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run GoReleaser Docker Push
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'pull_request' &&
+          github.event.action == 'closed' &&
+          github.event.pull_request.merged == true &&
+          github.event.pull_request.base.ref == 'main')
+        run: |
+          export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          goreleaser release --rm-dist --skip-publish --snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Download BPF object file
+        run: |
+          gh release download --repo SentinalFS/file-monitor --clobber --pattern "monitor.bpf.o"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Decide to push or not
+        id: decide
+        run: |
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "PUSH=true" >> $GITHUB_ENV
+          else
+            echo "PUSH=false" >> $GITHUB_ENV
+          fi
+
+      - name: Build Image
+        if: env.PUSH == 'false'
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --build-arg TARGETARCH=amd64 \
+            --file Dockerfile \
+            -t siddh34/go-ebpf-logger:latest \
+            .
+
+      - name: Login to DockerHub
+        if: env.PUSH == 'true'
+        run: echo "${{ secrets.DOCKER_ACCESS_TOKEN }}" | docker login -u "siddh34" --password-stdin
+
+      - name: Build & Push Docker images
+        if: env.PUSH == 'true'      
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --file Dockerfile \
+            --push \
+            -t siddh34/go-ebpf-logger:latest \
+            .
