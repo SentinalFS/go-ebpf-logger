@@ -1,0 +1,20 @@
+[   
+    {
+        "version": "0.0.3",
+        "changes": [
+            "Removed map pinning"
+        ]
+    },
+    {
+        "version": "0.0.2",
+        "changes": [
+            "Updated maps"
+        ]
+    },
+    {
+        "version": "0.0.1",
+        "changes": [
+            "Initial release with basic functionality."
+        ]
+    }
+]
