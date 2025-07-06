@@ -29,3 +29,6 @@ dist
 
 # object files
 monitor.bpf.o
+
+# log files
+*.log
