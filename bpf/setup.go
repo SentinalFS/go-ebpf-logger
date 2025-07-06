@@ -33,12 +33,6 @@ func SetupBPF(bpfObj string) (*ebpf.Map, *ebpf.Map, func()) {
         links = append(links, &kp)
     }
 
-	monitored_inode_map := coll.Maps["monitored_inodes"]
-	err = pinMaps(monitored_inode_map)
-	if err != nil {
-		panic(err)
-	}
-
     events := coll.Maps["events"]
     if events == nil {
         fmt.Printf("Map 'events' not found\n")
